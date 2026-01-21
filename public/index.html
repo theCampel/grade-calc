@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grade Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="logo">
+        <span class="logo-icon">G</span>
+        <span class="logo-text">Grade Lab</span>
+      </div>
+
+      <div class="users-section">
+        <div class="section-header">
+          <span>Profiles</span>
+          <button class="icon-btn" onclick="addUser()" title="Add profile">+</button>
+        </div>
+        <div class="users-list" id="usersList"></div>
+      </div>
+
+      <div class="nav-section">
+        <button class="nav-item active" data-view="grades" onclick="switchView('grades')" tabindex="0">
+          <span class="nav-icon">01</span>
+          <span>Grades</span>
+        </button>
+        <button class="nav-item" data-view="predict" onclick="switchView('predict')" tabindex="0">
+          <span class="nav-icon">02</span>
+          <span>Predict</span>
+        </button>
+        <button class="nav-item" data-view="compare" onclick="switchView('compare')" tabindex="0">
+          <span class="nav-icon">03</span>
+          <span>Compare</span>
+        </button>
+        <button class="nav-item" data-view="import" onclick="switchView('import')" tabindex="0">
+          <span class="nav-icon">04</span>
+          <span>Import</span>
+        </button>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="formula-display">
+          <span class="formula-label">Formula</span>
+          <code>(Y3 × 0.5) + (Y4 × 0.5)</code>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Header Stats -->
+      <header class="stats-bar">
+        <div class="stat-card final">
+          <div class="stat-value" id="finalGrade">--</div>
+          <div class="stat-label">Final</div>
+          <div class="stat-class" id="classification">--</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="year3Avg">--</div>
+          <div class="stat-label">Year 3</div>
+          <div class="stat-sub"><span id="year3Credits">0</span>/120 cr</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="year4Avg">--</div>
+          <div class="stat-label">Year 4</div>
+          <div class="stat-sub"><span id="year4Credits">0</span>/120 cr</div>
+        </div>
+        <button class="save-btn" onclick="saveGrades()" tabindex="0">
+          <span class="save-icon">Save</span>
+          <span class="save-status" id="saveStatus"></span>
+        </button>
+      </header>
+
+      <!-- Views -->
+      <div class="view active" id="grades-view">
+        <div class="grades-container">
+          <section class="year-section" data-year="year3">
+            <div class="year-header">
+              <h2>Year 3 <span class="year-tag">2024/25</span></h2>
+            </div>
+            <div class="modules-table">
+              <div class="table-header">
+                <span></span>
+                <span class="col-name">Module</span>
+                <span class="col-credits">Cr</span>
+                <span class="col-mark">Mark</span>
+                <span class="col-status">Status</span>
+                <span class="col-actions"></span>
+              </div>
+              <div class="modules-body" id="year3-modules"></div>
+              <button class="add-module-btn" onclick="addModule('year3')" tabindex="0">+ Add Module</button>
+            </div>
+          </section>
+
+          <section class="year-section" data-year="year4">
+            <div class="year-header">
+              <h2>Year 4 <span class="year-tag">2025/26</span></h2>
+            </div>
+            <div class="modules-table">
+              <div class="table-header">
+                <span></span>
+                <span class="col-name">Module</span>
+                <span class="col-credits">Cr</span>
+                <span class="col-mark">Mark</span>
+                <span class="col-status">Status</span>
+                <span class="col-actions"></span>
+              </div>
+              <div class="modules-body" id="year4-modules"></div>
+              <div class="add-buttons">
+                <button class="add-module-btn" onclick="addModule('year4')" tabindex="0">+ Add Module</button>
+                <button class="add-module-btn diss" onclick="addDissertation()" tabindex="0">+ Dissertation (40cr)</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="view" id="predict-view">
+        <div class="predict-container">
+          <div class="predict-header">
+            <h2>What do you need?</h2>
+            <p>Calculate the average mark required on your remaining modules to hit your target.</p>
+          </div>
+
+          <div class="target-selector">
+            <button class="target-btn" onclick="setTarget(70)" data-target="70" tabindex="0">
+              <span class="target-value">70</span>
+              <span class="target-class">First</span>
+            </button>
+            <button class="target-btn" onclick="setTarget(65)" data-target="65" tabindex="0">
+              <span class="target-value">65</span>
+              <span class="target-class">High 2:1</span>
+            </button>
+            <button class="target-btn active" onclick="setTarget(60)" data-target="60" tabindex="0">
+              <span class="target-value">60</span>
+              <span class="target-class">2:1</span>
+            </button>
+            <button class="target-btn" onclick="setTarget(50)" data-target="50" tabindex="0">
+              <span class="target-value">50</span>
+              <span class="target-class">2:2</span>
+            </button>
+            <div class="target-custom">
+              <input type="number" id="customTarget" placeholder="Custom" min="0" max="100" tabindex="0" onchange="setTarget(this.value)">
+            </div>
+          </div>
+
+          <div class="predict-results">
+            <div class="result-breakdown">
+              <div class="breakdown-row">
+                <span>Your Year 3 Average</span>
+                <span class="mono" id="pYear3">--</span>
+              </div>
+              <div class="breakdown-row">
+                <span>Confirmed Year 4</span>
+                <span class="mono" id="pConfirmed">-- / 120 cr</span>
+              </div>
+              <div class="breakdown-row">
+                <span>Remaining</span>
+                <span class="mono" id="pRemaining">-- cr</span>
+              </div>
+            </div>
+            <div class="result-needed">
+              <div class="needed-value" id="pNeeded">--</div>
+              <div class="needed-label">Required average on remaining modules</div>
+            </div>
+            <div class="result-verdict" id="pVerdict"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="compare-view">
+        <div class="compare-container">
+          <div class="compare-header">
+            <h2>Compare Profiles</h2>
+            <p>Select profiles to compare side by side</p>
+          </div>
+          <div class="compare-grid" id="compareGrid"></div>
+        </div>
+      </div>
+
+      <div class="view" id="import-view">
+        <div class="import-container">
+          <div class="import-header">
+            <h2>Import Transcript</h2>
+            <p>Upload your EUCLID transcript and we'll extract your grades automatically.</p>
+          </div>
+
+          <div class="upload-zone" id="uploadZone" tabindex="0">
+            <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg,.txt" hidden>
+            <div class="upload-content">
+              <div class="upload-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 16V4m0 0L8 8m4-4l4 4"/>
+                  <path d="M20 16v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2"/>
+                </svg>
+              </div>
+              <div class="upload-text">Drop PDF or image here</div>
+              <div class="upload-sub">or click to browse</div>
+            </div>
+          </div>
+
+          <div class="upload-status" id="uploadStatus"></div>
+
+          <div class="parsed-results" id="parsedResults">
+            <div class="parsed-header">
+              <h3>Extracted Modules</h3>
+              <select id="importYear" tabindex="0">
+                <option value="year3">Import to Year 3</option>
+                <option value="year4">Import to Year 4</option>
+              </select>
+            </div>
+            <div class="parsed-modules" id="parsedModules"></div>
+            <button class="import-btn" onclick="importParsedModules()" tabindex="0">Import All</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

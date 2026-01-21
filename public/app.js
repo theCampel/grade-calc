@@ -518,7 +518,24 @@ function updateCreditCount(year) {
   if (!user) return;
 
   const total = user[year].reduce((sum, m) => sum + (m.credits || 0), 0);
-  document.getElementById(`${year}Credits`).textContent = total;
+  const missingMarks = user[year].filter(m => getEffectiveMark(m) === null).length;
+  const el = document.getElementById(`${year}Credits`);
+  
+  const creditsMissing = total > 0 && total < 120;
+  const isIncomplete = creditsMissing || missingMarks > 0;
+  
+  el.textContent = total;
+  el.parentElement.classList.toggle('incomplete', isIncomplete);
+  
+  let tooltip = '';
+  if (creditsMissing) tooltip = `${120 - total} credits missing`;
+  else if (missingMarks > 0) tooltip = `${missingMarks} module${missingMarks > 1 ? 's' : ''} without marks`;
+  
+  if (tooltip) {
+    el.parentElement.setAttribute('data-tooltip', tooltip);
+  } else {
+    el.parentElement.removeAttribute('data-tooltip');
+  }
 }
 
 // ============================================
@@ -559,9 +576,45 @@ function calculateGrades() {
     else classification = 'Below Honours';
   }
 
-  // Update display
-  document.getElementById('year3Avg').textContent = year3Avg > 0 ? year3Avg.toFixed(1) : '--';
-  document.getElementById('year4Avg').textContent = year4Avg > 0 ? year4Avg.toFixed(1) : '--';
+  // Calculate credit totals and missing marks
+  const year3Credits = user.year3.reduce((sum, m) => sum + (m.credits || 0), 0);
+  const year4Credits = user.year4.reduce((sum, m) => sum + (m.credits || 0), 0);
+  
+  const year3MissingMarks = user.year3.filter(m => getEffectiveMark(m) === null).length;
+  const year4MissingMarks = user.year4.filter(m => getEffectiveMark(m) === null).length;
+  
+  // Update display with incomplete warnings
+  const year3El = document.getElementById('year3Avg');
+  const year4El = document.getElementById('year4Avg');
+  
+  year3El.textContent = year3Avg > 0 ? year3Avg.toFixed(1) : '--';
+  year4El.textContent = year4Avg > 0 ? year4Avg.toFixed(1) : '--';
+  
+  // Check for incomplete: missing credits OR missing marks
+  const year3CreditsMissing = year3Credits > 0 && year3Credits < 120;
+  const year4CreditsMissing = year4Credits > 0 && year4Credits < 120;
+  const year3Incomplete = year3CreditsMissing || year3MissingMarks > 0;
+  const year4Incomplete = year4CreditsMissing || year4MissingMarks > 0;
+  
+  year3El.classList.toggle('incomplete', year3Incomplete);
+  year4El.classList.toggle('incomplete', year4Incomplete);
+  
+  // Build tooltip message
+  let year3Tooltip = '';
+  if (year3CreditsMissing) year3Tooltip = `Only ${year3Credits}/120 credits entered`;
+  else if (year3MissingMarks > 0) year3Tooltip = `${year3MissingMarks} module${year3MissingMarks > 1 ? 's' : ''} missing marks`;
+  
+  let year4Tooltip = '';
+  if (year4CreditsMissing) year4Tooltip = `Only ${year4Credits}/120 credits entered`;
+  else if (year4MissingMarks > 0) year4Tooltip = `${year4MissingMarks} module${year4MissingMarks > 1 ? 's' : ''} missing marks`;
+  
+  year3El.setAttribute('data-tooltip', year3Tooltip);
+  year4El.setAttribute('data-tooltip', year4Tooltip);
+  
+  // Remove tooltip attribute if empty
+  if (!year3Tooltip) year3El.removeAttribute('data-tooltip');
+  if (!year4Tooltip) year4El.removeAttribute('data-tooltip');
+  
   document.getElementById('finalGrade').textContent = finalGrade > 0 ? finalGrade.toFixed(1) : '--';
   document.getElementById('classification').textContent = classification;
 

@@ -21,6 +21,13 @@ npm start
 Then open **http://localhost:3000**
 
 ---
+## Importing Your Transcript
+
+1. Log into EUCLID -> My Student Record -> Assessment & Progression -> Select Year 3 or Year 4
+2. Press Cmd/Ctrl + P to save as PDF
+3. Drop the file into the "Import Transcript" tab (after you have setup your API key)
+4. The AI extracts your modules, credits, and marks
+---
 
 ## Setup Your API Key
 
@@ -69,23 +76,6 @@ Your final grade = **(Year 3 × 50%) + (Year 4 × 50%)**
 | Upper Second (2:1) | 60-69% |
 | Lower Second (2:2) | 50-59% |
 | Third Class | 40-49% |
-
----
-
-## Importing Your Transcript
-
-1. Log into EUCLID → View your transcript
-2. Either:
-   - **Save as PDF** (File → Print → Save as PDF)
-3. Drop the file into the Import tab
-4. The AI extracts your modules, credits, and marks
-
-### Partial Grades / Coursework
-
-If a module doesn't have a final grade yet, the AI will extract any **coursework components** it finds (CW1, CW2, Exam weights, etc.). You can:
-- See the breakdown by clicking the **▶** expand button
-- Enter marks for individual components
-- The overall mark calculates automatically from weighted components
 
 ---
 

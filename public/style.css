@@ -416,6 +416,96 @@ body {
   animation: fadeIn 0.3s ease;
 }
 
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 40px;
+  max-width: 400px;
+  margin: 0 auto;
+  animation: fadeIn 0.4s ease;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 24px;
+  line-height: 1;
+}
+
+.empty-state h2 {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.empty-state p {
+  color: var(--text-secondary);
+  margin-bottom: 32px;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.empty-cta {
+  padding: 16px 32px;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--bg-primary);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.empty-cta:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+}
+
+.empty-divider {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin: 24px 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.empty-divider::before,
+.empty-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.empty-divider span {
+  padding: 0 16px;
+}
+
+.empty-secondary {
+  padding: 12px 24px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.empty-secondary:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
 /* Grades View */
 .grades-container {
   display: grid;
@@ -1006,6 +1096,188 @@ body {
   color: var(--text-secondary);
 }
 
+/* Import Instructions */
+.import-instructions {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.instruction-step {
+  flex: 1;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.step-num {
+  width: 28px;
+  height: 28px;
+  background: var(--accent);
+  color: var(--bg-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.step-content strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.9rem;
+}
+
+.step-content p {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.step-content kbd {
+  background: var(--bg-elevated);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  border: 1px solid var(--border);
+}
+
+@media (max-width: 768px) {
+  .import-instructions {
+    flex-direction: column;
+  }
+}
+
+/* API Key Banner */
+.api-key-banner {
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(255, 107, 53, 0.05));
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 24px;
+  animation: fadeIn 0.3s ease;
+}
+
+.api-key-banner-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.api-key-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.api-key-text strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+
+.api-key-text p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.api-key-setup {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.api-key-input {
+  flex: 1;
+  padding: 12px 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+
+.api-key-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.api-key-input::placeholder {
+  color: var(--text-muted);
+}
+
+.api-key-btn {
+  padding: 12px 24px;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--bg-primary);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.api-key-btn:hover {
+  filter: brightness(1.1);
+}
+
+.api-key-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.api-key-help {
+  text-align: center;
+}
+
+.api-key-help a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+
+.api-key-help a:hover {
+  text-decoration: underline;
+}
+
+.api-key-status {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  text-align: center;
+  display: none;
+}
+
+.api-key-status.visible {
+  display: block;
+}
+
+.api-key-status.success {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--success);
+}
+
+.api-key-status.error {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+}
+
 .upload-zone {
   border: 2px dashed var(--border);
   border-radius: var(--radius-lg);
@@ -1018,6 +1290,11 @@ body {
 .upload-zone:hover, .upload-zone.dragover {
   border-color: var(--accent);
   background: var(--accent-dim);
+}
+
+.upload-zone.disabled {
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 .upload-zone:focus {
@@ -1148,11 +1425,15 @@ body {
   gap: 12px;
   padding: 12px 20px;
   border-bottom: 1px solid var(--border);
-  align-items: center;
+  align-items: start;
 }
 
 .parsed-module.pending {
   border-left: 2px solid var(--warning);
+}
+
+.parsed-module-info {
+  min-width: 0;
 }
 
 .parsed-module-name {
@@ -1161,6 +1442,25 @@ body {
 
 .parsed-module-code {
   font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.parsed-components {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.parsed-component {
+  font-size: 0.75rem;
+  background: var(--bg-elevated);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+}
+
+.parsed-component-weight {
   color: var(--text-muted);
 }
 

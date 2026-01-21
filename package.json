@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "npx nodemon server.js",
+    "restart": "pkill -f 'node server.js' 2>/dev/null; node server.js"
   },
   "keywords": [],
   "author": "",

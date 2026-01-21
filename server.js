@@ -13,7 +13,80 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Dynamic OpenAI client - reloads if API key changes
+let openai = null;
+let currentApiKey = null;
+
+function getOpenAI() {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key || key === 'sk-your-api-key-here') return null;
+  
+  // Recreate client if key changed
+  if (!openai || currentApiKey !== key) {
+    openai = new OpenAI({ apiKey: key });
+    currentApiKey = key;
+  }
+  return openai;
+}
+
+// Check if API key is configured
+app.get('/api/config/status', (req, res) => {
+  // Re-read .env file to get latest value
+  const envPath = path.join(__dirname, '.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    const match = envContent.match(/OPENAI_API_KEY=(.+)/);
+    if (match && match[1]) {
+      process.env.OPENAI_API_KEY = match[1].trim();
+    }
+  }
+  
+  const key = process.env.OPENAI_API_KEY;
+  const isConfigured = key && key.length > 10 && key !== 'sk-your-api-key-here';
+  res.json({ 
+    apiKeyConfigured: isConfigured,
+    hasEnvFile: fs.existsSync(envPath)
+  });
+});
+
+// Set API key (writes to or updates .env file)
+app.post('/api/config/apikey', (req, res) => {
+  const { apiKey } = req.body;
+  
+  if (!apiKey || apiKey.length < 10) {
+    return res.status(400).json({ error: 'Invalid API key' });
+  }
+  
+  try {
+    const envPath = path.join(__dirname, '.env');
+    let envContent = '';
+    
+    // Read existing .env if it exists and preserve other variables
+    if (fs.existsSync(envPath)) {
+      const existing = fs.readFileSync(envPath, 'utf8');
+      const lines = existing.split('\n');
+      const otherLines = lines.filter(line => {
+        const trimmed = line.trim();
+        return trimmed && !trimmed.startsWith('OPENAI_API_KEY=') && !trimmed.startsWith('#');
+      });
+      if (otherLines.length > 0) {
+        envContent = otherLines.join('\n') + '\n';
+      }
+    }
+    
+    // Add/update the API key
+    envContent += `OPENAI_API_KEY=${apiKey}\n`;
+    fs.writeFileSync(envPath, envContent);
+    
+    // Update process.env and reset client
+    process.env.OPENAI_API_KEY = apiKey;
+    openai = new OpenAI({ apiKey });
+    
+    res.json({ success: true, message: 'API key saved successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to save API key', details: error.message });
+  }
+});
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -122,73 +195,111 @@ app.post('/api/whatif', (req, res) => {
   });
 });
 
-const EUCLID_PARSER_PROMPT = `You are parsing a University of Edinburgh EUCLID transcript. Extract ONLY the course-level information.
+const EUCLID_PARSER_PROMPT = `Parse this University of Edinburgh EUCLID transcript PDF.
 
-CRITICAL RULES:
-1. Extract ONLY the FINAL COURSE GRADE - this appears as a large percentage with grade letter next to the course title (e.g., "Software Testing – INFR10057  78% A3")
-2. DO NOT extract individual coursework components (CW1, CW2, Exam scores, etc.) - these are sub-components, not the final grade
-3. If a course shows "No final result yet", set confirmed: false and mark: null
-4. For courses without a final grade yet, you can optionally include "components" array with the sub-assessments
+EXTRACT FOR EACH COURSE:
+- name: Course name (e.g., "Machine Learning Practical")
+- code: Course code (e.g., "INFR11223")  
+- credits: Credit value as INTEGER (usually 10, 20, or 40). REQUIRED - look for "Credits: X" or "X credits"
+- mark: Final course grade as INTEGER (0-100), or null if no final grade yet
+- confirmed: true if final grade exists, false if "No final result yet"
+- components: Array of individual assessments (coursework, exams) that make up the grade
 
-EUCLID FORMAT:
-- Course headers look like: "Course Name – INFRXXXXX    XX% Grade"
-- The percentage next to the course name IS the final grade
-- Below each course are breakdowns (Coursework, Exam, CW1, CW2) - IGNORE these for the main mark
-- Credits appear as "Credits: XX"
-- Period shows semester info
+COMPONENTS - Extract these for EVERY course when visible:
+Each component needs: name (e.g., "CW1", "Exam"), weight (percentage, e.g., 30), mark (score or null)
+Components help users track progress before final grades are released.
 
-Return format:
-{
-  "modules": [
-    {
-      "name": "Software Testing",
-      "code": "INFR10057",
-      "credits": 10,
-      "mark": 78,
-      "confirmed": true,
-      "semester": 1
+CREDIT VALUES:
+- Most courses: 10 or 20 credits
+- Honours Project/Dissertation: 40 credits
+- If unclear, use 20 as default
+
+YEAR DETECTION:
+- INFR09xxx, INFR10xxx = Year 3
+- INFR11xxx = Year 4
+- EPCC courses = usually Year 4`;
+
+// JSON Schema for structured output
+const TRANSCRIPT_SCHEMA = {
+  type: "object",
+  properties: {
+    modules: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          code: { type: "string" },
+          credits: { type: "integer" },
+          mark: { type: ["integer", "null"] },
+          confirmed: { type: "boolean" },
+          components: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                weight: { type: "integer" },
+                mark: { type: ["integer", "null"] }
+              },
+              required: ["name", "weight", "mark"],
+              additionalProperties: false
+            }
+          }
+        },
+        required: ["name", "code", "credits", "mark", "confirmed", "components"],
+        additionalProperties: false
+      }
     },
-    {
-      "name": "Blockchains and Distributed Ledgers",
-      "code": "INFR11144",
-      "credits": 10,
-      "mark": null,
-      "confirmed": false,
-      "semester": 1,
-      "components": [
-        {"name": "Exam", "weight": 70, "mark": null},
-        {"name": "Coursework Project", "weight": 30, "mark": 65}
-      ]
-    }
-  ],
-  "year": "3" or "4"
-}
-
-Key identifiers:
-- Year 3 courses: Level 9/10 courses (INFR09xxx, INFR10xxx)
-- Year 4 courses: Level 11 courses (INFR11xxx), Honours Project (40 credits)
-- Honours Project/Dissertation: INFR10044, always 40 credits
-- "No final result yet" = confirmed: false, mark: null`;
+    year: { type: "string", enum: ["3", "4"] }
+  },
+  required: ["modules", "year"],
+  additionalProperties: false
+};
 
 // Parse transcript with OpenAI (text/PDF)
 app.post('/api/parse-transcript', upload.single('transcript'), async (req, res) => {
   try {
+    const client = getOpenAI();
+    if (!client) {
+      return res.status(400).json({ 
+        error: 'API key not configured',
+        needsApiKey: true 
+      });
+    }
+
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
     const content = req.file.buffer.toString('utf8');
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-5.2-mini',
+    const response = await client.chat.completions.create({
+      model: 'gpt-5.2',
       messages: [
         { role: 'system', content: EUCLID_PARSER_PROMPT },
-        { role: 'user', content: `Parse this EUCLID transcript. Remember: extract ONLY the final course grade (the big % next to course name), NOT the coursework breakdown.\n\n${content}` }
+        { role: 'user', content: `Parse this EUCLID transcript. Extract each course with credits (integer), final mark, and assessment components.\n\n${content}` }
       ],
-      response_format: { type: 'json_object' }
+      response_format: { 
+        type: 'json_schema',
+        json_schema: {
+          name: 'transcript',
+          strict: true,
+          schema: TRANSCRIPT_SCHEMA
+        }
+      }
     });
 
     const parsed = JSON.parse(response.choices[0].message.content);
+    
+    // Ensure credits has fallback
+    if (parsed.modules) {
+      parsed.modules = parsed.modules.map(m => ({
+        ...m,
+        credits: m.credits || 20
+      }));
+    }
+    
     res.json(parsed);
 
   } catch (error) {
@@ -200,6 +311,14 @@ app.post('/api/parse-transcript', upload.single('transcript'), async (req, res) 
 // Parse any file (PDF, image) with OpenAI
 app.post('/api/parse-transcript-image', upload.single('transcript'), async (req, res) => {
   try {
+    const client = getOpenAI();
+    if (!client) {
+      return res.status(400).json({ 
+        error: 'API key not configured',
+        needsApiKey: true 
+      });
+    }
+
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
@@ -207,9 +326,9 @@ app.post('/api/parse-transcript-image', upload.single('transcript'), async (req,
     const base64Data = req.file.buffer.toString('base64');
     const mimeType = req.file.mimetype;
 
-    // OpenAI supports PDFs and images via the file content type
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+    // OpenAI supports PDFs via the file content type
+    const response = await client.chat.completions.create({
+      model: 'gpt-5.2',
       messages: [
         { role: 'system', content: EUCLID_PARSER_PROMPT },
         {
@@ -224,15 +343,31 @@ app.post('/api/parse-transcript-image', upload.single('transcript'), async (req,
             },
             {
               type: 'text',
-              text: 'Parse this EUCLID transcript and return JSON. Extract ONLY the final course grade shown next to each course name (e.g. "78% A3"). Do NOT include individual coursework or exam component marks - only the overall course result.'
+              text: 'Parse this EUCLID transcript. Extract each course with its credits (REQUIRED - integer like 10, 20, or 40), final mark if available, and any visible assessment components (coursework, exams with their weights and marks). Components help track progress before final grades.'
             }
           ]
         }
       ],
-      response_format: { type: 'json_object' }
+      response_format: { 
+        type: 'json_schema',
+        json_schema: {
+          name: 'transcript',
+          strict: true,
+          schema: TRANSCRIPT_SCHEMA
+        }
+      }
     });
 
     const parsed = JSON.parse(response.choices[0].message.content);
+    
+    // Ensure credits has fallback
+    if (parsed.modules) {
+      parsed.modules = parsed.modules.map(m => ({
+        ...m,
+        credits: m.credits || 20 // Default to 20 if missing
+      }));
+    }
+    
     res.json(parsed);
 
   } catch (error) {

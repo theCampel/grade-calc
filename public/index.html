@@ -80,7 +80,17 @@
 
       <!-- Views -->
       <div class="view active" id="grades-view">
-        <div class="grades-container">
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+          <div class="empty-icon">📊</div>
+          <h2>No modules yet</h2>
+          <p>Import your EUCLID transcript to get started in seconds.</p>
+          <button class="empty-cta" onclick="switchView('import')">Import Transcript →</button>
+          <div class="empty-divider"><span>or</span></div>
+          <button class="empty-secondary" onclick="addModule('year3')">Add modules manually</button>
+        </div>
+
+        <div class="grades-container" id="gradesContainer">
           <section class="year-section" data-year="year3">
             <div class="year-header">
               <h2>Year 3 <span class="year-tag">2024/25</span></h2>
@@ -192,8 +202,52 @@
             <p>Upload your EUCLID transcript and we'll extract your grades automatically.</p>
           </div>
 
+          <!-- Instructions -->
+          <div class="import-instructions" id="importInstructions">
+            <div class="instruction-step">
+              <span class="step-num">1</span>
+              <div class="step-content">
+                <strong>Go to EUCLID</strong>
+                <p>My Student Record → Assessment & Progression → Select Year 3 or Year 4</p>
+              </div>
+            </div>
+            <div class="instruction-step">
+              <span class="step-num">2</span>
+              <div class="step-content">
+                <strong>Save as PDF</strong>
+                <p>Press <kbd>Cmd/Ctrl + P</kbd> → Save as PDF</p>
+              </div>
+            </div>
+            <div class="instruction-step">
+              <span class="step-num">3</span>
+              <div class="step-content">
+                <strong>Drop it below</strong>
+                <p>Drag the PDF into the upload zone</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- API Key Setup Banner -->
+          <div class="api-key-banner" id="apiKeyBanner" style="display: none;">
+            <div class="api-key-banner-content">
+              <div class="api-key-icon">🔑</div>
+              <div class="api-key-text">
+                <strong>API Key Required</strong>
+                <p>To use transcript import, you need an OpenAI API key.</p>
+              </div>
+            </div>
+            <div class="api-key-setup">
+              <input type="password" id="apiKeyInput" placeholder="Paste your API key" class="api-key-input">
+              <button onclick="saveApiKey()" class="api-key-btn">Save Key</button>
+            </div>
+            <div class="api-key-help">
+              <a href="https://platform.openai.com/api-keys" target="_blank">Get an API key →</a>
+            </div>
+            <div class="api-key-status" id="apiKeyStatus"></div>
+          </div>
+
           <div class="upload-zone" id="uploadZone" tabindex="0">
-            <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg,.txt" hidden>
+            <input type="file" id="fileInput" accept=".pdf" hidden>
             <div class="upload-content">
               <div class="upload-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -201,7 +255,7 @@
                   <path d="M20 16v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2"/>
                 </svg>
               </div>
-              <div class="upload-text">Drop PDF or image here</div>
+              <div class="upload-text">Drop your EUCLID PDF here</div>
               <div class="upload-sub">or click to browse</div>
             </div>
           </div>

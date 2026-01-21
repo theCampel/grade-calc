@@ -59,15 +59,132 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Try to load from server for the default user
   await loadFromServer();
+  
+  // Check API key status
+  await checkApiKeyStatus();
 
   renderUsers();
   renderModules('year3');
   renderModules('year4');
+  updateEmptyState();
   calculateGrades();
   setupUpload();
   setupKeyboardNav();
   calculateWhatIf();
 });
+
+// ============================================
+// Empty State
+// ============================================
+function updateEmptyState() {
+  const user = getActiveUser();
+  const emptyState = document.getElementById('emptyState');
+  const gradesContainer = document.getElementById('gradesContainer');
+  
+  if (!user) return;
+  
+  const hasModules = (user.year3 && user.year3.length > 0) || (user.year4 && user.year4.length > 0);
+  
+  if (hasModules) {
+    emptyState.style.display = 'none';
+    gradesContainer.style.display = 'grid';
+  } else {
+    emptyState.style.display = 'flex';
+    gradesContainer.style.display = 'none';
+  }
+}
+
+// ============================================
+// API Key Management
+// ============================================
+let apiKeyConfigured = false;
+
+async function checkApiKeyStatus() {
+  try {
+    const res = await fetch('/api/config/status');
+    const data = await res.json();
+    apiKeyConfigured = data.apiKeyConfigured;
+    updateApiKeyBanner();
+  } catch (err) {
+    console.log('Could not check API key status:', err);
+    apiKeyConfigured = false;
+    updateApiKeyBanner();
+  }
+}
+
+function updateApiKeyBanner() {
+  const banner = document.getElementById('apiKeyBanner');
+  const uploadZone = document.getElementById('uploadZone');
+  
+  if (!apiKeyConfigured) {
+    banner.style.display = 'block';
+    uploadZone.classList.add('disabled');
+  } else {
+    banner.style.display = 'none';
+    uploadZone.classList.remove('disabled');
+  }
+}
+
+async function saveApiKey() {
+  const input = document.getElementById('apiKeyInput');
+  const status = document.getElementById('apiKeyStatus');
+  const btn = document.querySelector('.api-key-btn');
+  
+  const apiKey = input.value.trim();
+  
+  if (!apiKey) {
+    showApiKeyStatus('Please enter an API key', 'error');
+    return;
+  }
+  
+  if (apiKey.length < 10) {
+    showApiKeyStatus('API key seems too short', 'error');
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  
+  try {
+    const res = await fetch('/api/config/apikey', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey })
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      showApiKeyStatus('API key saved! You can now import transcripts.', 'success');
+      apiKeyConfigured = true;
+      input.value = '';
+      
+      // Hide banner after a moment
+      setTimeout(() => {
+        updateApiKeyBanner();
+      }, 1500);
+    } else {
+      showApiKeyStatus(data.error || 'Failed to save API key', 'error');
+    }
+  } catch (err) {
+    showApiKeyStatus('Failed to save API key: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Key';
+  }
+}
+
+function showApiKeyStatus(message, type) {
+  const status = document.getElementById('apiKeyStatus');
+  status.textContent = message;
+  status.className = `api-key-status visible ${type}`;
+  
+  if (type === 'success') {
+    setTimeout(() => {
+      status.className = 'api-key-status';
+    }, 3000);
+  }
+}
 
 // Load data from server (for backwards compatibility)
 async function loadFromServer() {
@@ -271,6 +388,7 @@ function renderModules(year) {
   }).join('');
 
   updateCreditCount(year);
+  updateEmptyState();
 }
 
 function toggleExpand(year, idx) {
@@ -613,6 +731,13 @@ async function handleFile(file) {
   const status = document.getElementById('uploadStatus');
   const results = document.getElementById('parsedResults');
 
+  // Check API key first
+  if (!apiKeyConfigured) {
+    status.className = 'upload-status visible error';
+    status.textContent = 'Please add your API key above first';
+    return;
+  }
+
   status.className = 'upload-status visible loading';
   status.textContent = 'Parsing transcript...';
   results.classList.remove('visible');
@@ -627,6 +752,14 @@ async function handleFile(file) {
     });
 
     const data = await res.json();
+
+    if (data.needsApiKey) {
+      apiKeyConfigured = false;
+      updateApiKeyBanner();
+      status.className = 'upload-status visible error';
+      status.textContent = 'API key required - please add it above';
+      return;
+    }
 
     if (data.error) {
       throw new Error(data.error);
@@ -662,13 +795,30 @@ function renderParsedModules() {
 
   container.innerHTML = state.parsedModules.map(m => {
     const isPending = !m.confirmed || m.mark === null;
+    const hasComponents = m.components && m.components.length > 0;
+    
+    let componentsHtml = '';
+    if (hasComponents) {
+      componentsHtml = `
+        <div class="parsed-components">
+          ${m.components.map(c => `
+            <span class="parsed-component">
+              ${c.name}: ${c.mark !== null ? c.mark + '%' : '—'} 
+              <span class="parsed-component-weight">(${c.weight}%)</span>
+            </span>
+          `).join('')}
+        </div>
+      `;
+    }
+    
     return `
       <div class="parsed-module ${isPending ? 'pending' : ''}">
-        <div>
+        <div class="parsed-module-info">
           <div class="parsed-module-name">${m.name}</div>
           ${m.code ? `<div class="parsed-module-code">${m.code}</div>` : ''}
+          ${componentsHtml}
         </div>
-        <div class="parsed-module-credits">${m.credits}cr</div>
+        <div class="parsed-module-credits">${m.credits || 20}cr</div>
         <div class="parsed-module-mark ${isPending ? 'pending' : 'confirmed'}">
           ${m.mark !== null ? `${m.mark}%` : 'TBC'}
         </div>
@@ -684,13 +834,24 @@ function importParsedModules() {
   const year = document.getElementById('importYear').value;
 
   state.parsedModules.forEach(m => {
-    user[year].push({
-      name: m.name,
-      code: m.code,
-      credits: m.credits,
-      mark: m.mark,
+    const module = {
+      name: m.name || 'Unknown Module',
+      code: m.code || '',
+      credits: m.credits || 20,
+      mark: m.mark ?? null,
       confirmed: m.confirmed !== false && m.mark !== null
-    });
+    };
+    
+    // Include components if present
+    if (m.components && m.components.length > 0) {
+      module.components = m.components.map(c => ({
+        name: c.name,
+        weight: c.weight,
+        mark: c.mark
+      }));
+    }
+    
+    user[year].push(module);
   });
 
   saveState();

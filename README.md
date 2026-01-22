@@ -1,5 +1,7 @@
 # Grade Lab
 
+> Thank you to [Luke Tervit](https://github.com/luketervit) for the prompt engineering in this project!
+
 Calculate your University of Edinburgh honours degree classification in seconds.
 
 ## Quick Start
